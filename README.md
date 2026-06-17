@@ -1,6 +1,6 @@
 ## Overview
 
-A comprehensive internal chatbot system with Role-Based Access Control (RBAC) for the DIY-Prefab platform. The system uses specialized sub-agents for different domains (deals, engineering, files, projects, SQL queries) with session-based memory to reduce hallucination.
+A comprehensive internal chatbot system with Role-Based Access Control (RBAC) for the REDACTED platform. The system uses specialized sub-agents for different domains (deals, engineering, files, projects, SQL queries) with session-based memory to reduce hallucination.
 
 ---
 
