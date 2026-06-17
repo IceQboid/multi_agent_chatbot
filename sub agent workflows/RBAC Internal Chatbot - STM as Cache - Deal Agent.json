@@ -1,0 +1,480 @@
+{
+  "name": "RBAC Internal Chatbot - STM as Cache - Deal Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "query"
+            },
+            {
+              "name": "intent"
+            },
+            {
+              "name": "deal_context"
+            },
+            {
+              "name": "user_context"
+            },
+            {
+              "name": "allowedProjects",
+              "type": "any"
+            },
+            {
+              "name": "session_id"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.data[0].query }}",
+        "options": {
+          "systemMessage": "=You are the DEAL AGENT for a partner-facing assistant system.\n\nYour responsibility is to answer ONLY deal-related, business, and commercial questions\nbased STRICTLY on the user's permissions and RBAC context.\n\n---\nThe time is {{ $now }}\n\nMust only communicate in English.\n---\n## WHAT YOU HANDLE\n\nYou handle questions related to:\n- Deal status, stage, progress\n- Pricing, margins, commissions (ONLY if permitted)\n- Commercial terms, timelines, scope\n- Partner/customer deal visibility\n- Deal-level summaries and comparisons\n- Employee details questions. Avoid backend details like URL, and ID.\n \n---\n## WHAT YOU MUST NEVER DO\nYou MUST NOT:\n- Answer engineering or technical design questions\n- Guess or infer missing deal identifiers\n- Reveal internal system fields or IDs\n- Guess user actions\n- Bypass or weaken RBAC rules\n\nIf a question is outside your scope → respond with:\n\"I’m sorry, you do not have permissions to access this content at the moment.\"\n\n## Context\n\nHere are the context you should work on:\n\n- User intent as per your supervisor: {{ JSON.stringify($json.data[0].intent) }}\n\n- User context: {{ JSON.stringify($json.data[0].user_context) }}\n\n- Deal context: {{ JSON.stringify($json.data[0].deal_context) }}\n\n- Allowed User Deals: {{ JSON.stringify($json.data[0].allowedProjects) }}\n\n- Employee details: {{ JSON.stringify($json.data[1].employee_details) }}\n\n- Contact details: {{ JSON.stringify($json.data[2].contact_details) }}\n\n## RESPONSE RULES\n\n1. If the information is allowed → answer clearly and concisely\n2. If permission is missing or user does not have access to the requested deal → deny with the exact denial message\n3. Never reveal system IDs (deal_id, project_id, stage_id, company_id)\n4. Maintain a professional, business-appropriate tone\n5. Do NOT mention RBAC, permissions, or internal logic explicitly\n6. Customers should not know the details of commissions for a deal. Parnters can only know about it.\n7. Maintain a friendly tone and always follow up to help the user more. \n8. If the partner asks for any employee details, just tell them what is present in employee details. You do not have to be concerned about who is added by the partner or not. \n9.If the requested information contains duplicates, ambiguities, or conflicting matches, do not make assumptions. Always ask a clarifying question before responding. Example: If the name “Kavya” appears in both employee records and contact details, ask the user to confirm which record they are referring to (e.g., employee Kavya or contact Kavya) before proceeding.\n10. Be cautious of time created and updated for contacts and their status as well. If the user requests for a particular time something is created/updated, Look into the given details accordingly and answer the questions. No guessing. The time now is {{ $now }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        2384,
+        384
+      ],
+      "id": "9e7322e5-28ed-4233-bfca-cb6e332907da",
+      "name": "Deal Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2352,
+        640
+      ],
+      "id": "5d5bf84e-4ca2-46f6-8cea-404cfa978905",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3ed9b820-036e-47ec-8401-971c3bc85b16",
+              "name": "user_context",
+              "value": "={{ $json.user_context.parseJson() }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        560
+      ],
+      "id": "abdde8f7-90d4-450a-af09-a8a47c707057",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "https://backend.diyprefab.com/api/v1/users/get-users-company-by-id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.user_context[0].token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        816,
+        560
+      ],
+      "id": "016bcfa0-7abb-4086-a249-262d2f3b047c",
+      "name": "HTTP Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        560
+      ],
+      "id": "b9be7e42-e419-4ee1-ad6e-488c8959efef",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "employee_details",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        560
+      ],
+      "id": "bd5ef1bd-f75a-40bc-96fb-21cda3c244b3",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1536,
+        368
+      ],
+      "id": "3d1d7096-8af0-4b0a-afa9-168b2a366ac4",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        384
+      ],
+      "id": "13aa65f1-025e-4dc8-90de-5b429d3c1df4",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "url": "https://backend.diyprefab.com/api/v1/contact/get-company-contacts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.user_context[0].token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        816,
+        800
+      ],
+      "id": "368ef16e-1b39-4c1c-82ca-d9e94eb73c63",
+      "name": "HTTP Request2",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "contacts",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        800
+      ],
+      "id": "0e5f408d-89c8-44cf-9203-d376988cbe6a",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "contact_details",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        800
+      ],
+      "id": "e0efb3d2-dcb2-47ee-a9a7-8985dd4401cd",
+      "name": "Aggregate2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1760,
+        384
+      ],
+      "id": "365851bf-dc6d-4945-9309-eac93bdbc18e",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When Executed by Another Workflow').item.json.session_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        2496,
+        688
+      ],
+      "id": "ee5b93a6-8508-4b5d-9c59-14de0137ab16",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "xS735LtobgpsJOiJ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2176,
+        640
+      ],
+      "id": "3bdcce5a-d7b3-4bfe-a0f1-01b8a890d57a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Q5lzt9WCiVSyty80",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "lsit the number of deals i have",
+          "intent": null,
+          "deal_context": "[[{\"deal_id\":\"695b46381d4323eab54fb01d\",\"deal_company_name\":\"vid comp\",\"deal_location\":{\"address\":\"asd street\",\"pincode\":\"893425\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"695b46361d4323eab54fb019\"],\"hubspot_deal_id\":\"254561233619\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT539967\",\"deal_name\":\"vsdeal\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2026-01-05T05:03:52\",\"updated_at\":\"2026-01-05T05:03:54\",\"acknowledgement\":true,\"close_date\":\"2026-06-17T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"vidya\",\"last_name\":\"S\",\"email\":\"vidya@gmail.com\",\"hubspot_contact_id\":\"372733002479\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"vid comp\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121200\"}],\"created_at\":\"2026-01-05T05:03:50.803000\",\"updated_at\":\"2026-01-05T05:03:50.803000\",\"verified_by\":null,\"contact_id\":\"695b46361d4323eab54fb019\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"694e88871a65641b82f473d7\",\"deal_company_name\":\"ssd\",\"deal_location\":{\"address\":\"kj nagar\",\"pincode\":\"789987\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"yu\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"694e88851a65641b82f473d3\"],\"hubspot_deal_id\":\"248059420371\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT801088\",\"deal_name\":\"sdeal\",\"deal_value\":6000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-26T13:07:19\",\"updated_at\":\"2025-12-26T13:07:21\",\"acknowledgement\":true,\"close_date\":\"2026-09-17T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"sree\",\"last_name\":\"n\",\"email\":\"sreen@gmail.com\",\"hubspot_contact_id\":\"364170506983\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"ssd\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"2211332120\"}],\"created_at\":\"2025-12-26T13:07:17.564000\",\"updated_at\":\"2025-12-26T13:07:17.564000\",\"verified_by\":null,\"contact_id\":\"694e88851a65641b82f473d3\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"6940f875574050e1a1f9e091\",\"deal_company_name\":\"SANKO GOSEI TECHNOLOGY PVT.LTD\",\"deal_location\":{\"address\":\"vithalapur gujarat\",\"pincode\":\"382120\",\"state\":\"gujarat\",\"city\":\"ahmedabad\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"6940f873574050e1a1f9e07d\"],\"hubspot_deal_id\":\"242055711479\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT472812\",\"deal_name\":\"'QRF NO - 041_2526\",\"deal_value\":null,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-16T06:13:09\",\"updated_at\":\"2025-12-16T06:13:12\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"Kumagai\",\"last_name\":\"Ji\",\"email\":\"kumagai@gmail.com\",\"hubspot_contact_id\":\"355341289191\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"SANKO GOSEI TECHNOLOGY PVT.LTD\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9874547898\"}],\"created_at\":\"2025-12-16T06:13:07.709000\",\"updated_at\":\"2025-12-16T06:13:07.709000\",\"verified_by\":null,\"contact_id\":\"6940f873574050e1a1f9e07d\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"693691e60671779eb98e33bc\",\"deal_company_name\":\"buildcomp\",\"deal_location\":{\"address\":\"abc street\",\"pincode\":\"765348\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"abc\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"693691e40671779eb98e33b8\"],\"hubspot_deal_id\":\"235736101620\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT259369\",\"deal_name\":\"building\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-08T08:52:54\",\"updated_at\":\"2025-12-08T08:52:56\",\"acknowledgement\":true,\"close_date\":\"2026-04-10T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"kavya\",\"last_name\":\"N\",\"email\":\"kavyasree@ops.versalence.ai\",\"hubspot_contact_id\":\"346033282753\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"buildcomp\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121266\"}],\"created_at\":\"2025-12-08T08:52:52.692000\",\"updated_at\":\"2025-12-08T08:52:52.692000\",\"verified_by\":null,\"contact_id\":\"693691e40671779eb98e33b8\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"693189d1d33c4cbe5b9c368a\",\"deal_company_name\":\"testcomp\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"765348\",\"state\":\"g\",\"city\":\"f\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"693189cfd33c4cbe5b9c3686\"],\"hubspot_deal_id\":\"232719607501\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT451410\",\"deal_name\":\"testdeal1\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-04T13:17:05\",\"updated_at\":\"2025-12-04T13:17:07\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"ags\",\"last_name\":\"a\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"hubspot_contact_id\":\"311628965610\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"testcomp\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"3456789012\"}],\"created_at\":\"2025-12-04T13:17:03.128000\",\"updated_at\":\"2025-12-04T13:17:03.128000\",\"verified_by\":null,\"contact_id\":\"693189cfd33c4cbe5b9c3686\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"692e9a37b368c11d49e84063\",\"deal_company_name\":\"xsd\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"345359\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"692e9a35b368c11d49e8405f\"],\"hubspot_deal_id\":\"231385284334\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT884838\",\"deal_name\":\"housing\",\"deal_value\":6000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":\"housing project near the city and near to available road and transport facility\",\"tags\":[],\"created_at\":\"2025-12-02T07:50:15\",\"updated_at\":\"2025-12-02T07:50:17\",\"acknowledgement\":true,\"close_date\":\"2026-05-22T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"kann\",\"last_name\":\"g\",\"email\":\"rtgy@gmail.com\",\"hubspot_contact_id\":\"339985772257\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"xtt\",\"account_status\":\"verified\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121234\"},{\"phone_number_extension\":\"91\",\"phone_number\":\"6743212321\"}],\"created_at\":\"2025-12-02T07:50:13.303000\",\"updated_at\":\"2025-12-02T07:50:13.303000\",\"verified_by\":{\"user_id\":\"692720b6cf400c5a58a63e19\",\"name\":\"Tester\",\"verified_at\":\"2025-12-03T08:39:10.568000\"},\"contact_id\":\"692e9a35b368c11d49e8405f\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"692e9318b368c11d49e8404c\",\"deal_company_name\":\"qw\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"345356\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"692e91f4b368c11d49e84042\"],\"hubspot_deal_id\":\"231357674224\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT025181\",\"deal_name\":\"Apartment\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-02T07:19:52\",\"updated_at\":\"2025-12-02T08:15:42\",\"acknowledgement\":true,\"close_date\":\"2026-04-24T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"Absa\",\"last_name\":\"S\",\"email\":\"hgj@gmail.com\",\"hubspot_contact_id\":\"339998720734\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":\"Supervisor1\",\"tags\":null,\"notes\":null,\"customer_company_name\":\"qwf\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"2345678909\"},{\"phone_number_extension\":\"91\",\"phone_number\":\"6543219089\"}],\"created_at\":\"2025-12-02T07:15:00.019000\",\"updated_at\":\"2025-12-02T07:15:00.019000\",\"verified_by\":null,\"contact_id\":\"692e91f4b368c11d49e84042\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"692728521e26bc74fe51d0e1\",\"deal_company_name\":\"XYZ\",\"deal_location\":{\"address\":\"masgab nagar, patharpratima\",\"pincode\":\"743371\",\"state\":\"west bengal\",\"city\":\"south 24 parganas\",\"latitude\":null,\"longitude\":null,\"area\":\"Patharpratima Market\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"6927284f1e26bc74fe51d0dd\"],\"hubspot_deal_id\":\"227685163740\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT891162\",\"deal_name\":\"Shopping Mall\",\"deal_value\":7500000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":\"1. Choose a location with high foot traffic and easy accessibility.\\n2. Plan the budget and secure proper funding before starting.\\n3. Create a modern and safe architectural design with professionals.\\n4. Include anchor stores, a food court, and entertainment zones.\\n5. Ensure essential facilities like parking, security, elevators, and escalators.\\n\",\"tags\":[\"Urgent\"],\"created_at\":\"2025-11-26T16:18:26\",\"updated_at\":\"2025-11-26T16:18:28\",\"acknowledgement\":true,\"close_date\":\"2026-01-01T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"Priya\",\"last_name\":\"Sen\",\"email\":\"priyasen@gmail.com\",\"hubspot_contact_id\":\"335181704953\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"XYZ\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9745687912\"}],\"created_at\":\"2025-11-26T16:18:23.925000\",\"updated_at\":\"2025-11-26T16:18:23.925000\",\"verified_by\":null,\"contact_id\":\"6927284f1e26bc74fe51d0dd\"}],\"permission\":\"ADMIN\"}]]",
+          "user_context": "[{\"userId\":\"692720211e26bc74fe51d0c2\",\"name\":\"Pushpendu Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"userRole\":\"partner\",\"account_type\":\"partner\",\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTI3MjAyMTFlMjZiYzc0ZmU1MWQwYzIiLCJlbWFpbCI6InB1c2hwZW5kdS5qYW5hQGVuZ2cudmVyc2FsZW5jZS5haSIsInJvbGUiOiJhZG1pbiIsInVzZXJfdHlwZSI6InBhcnRuZXIiLCJzZXNzaW9uX2lkIjoiYjMyZmEyNzktNTkwMC00ZDM3LTg5M2YtY2IxMjA4Y2IwZGE5IiwiZXhwIjoxNzY4OTc0NjYxfQ.2ZgPbkbQiVfFSV3SXpR66rXiOnf-ug6VPmvXgRBKS7o\"}]",
+          "allowedProjects": "[{\"project_id\":[\"PROJECT539967\",\"PROJECT801088\",\"PROJECT472812\",\"PROJECT259369\",\"PROJECT451410\",\"PROJECT884838\",\"PROJECT025181\",\"PROJECT891162\"],\"deal_id\":[\"695b46381d4323eab54fb01d\",\"694e88871a65641b82f473d7\",\"6940f875574050e1a1f9e091\",\"693691e60671779eb98e33bc\",\"693189d1d33c4cbe5b9c368a\",\"692e9a37b368c11d49e84063\",\"692e9318b368c11d49e8404c\",\"692728521e26bc74fe51d0e1\"],\"deal_name\":[\"vsdeal\",\"sdeal\",\"'QRF NO - 041_2526\",\"building\",\"testdeal1\",\"housing\",\"Apartment\",\"Shopping Mall\"]}]",
+          "session_id": "9b86bbe7-5a27-4b0d-ab6e-035cb0163ba5"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Deal Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Deal Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Deal Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "17389685-82eb-47cb-8378-7a3f9084c614",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d4b4d0eabe8fbefe07fcc9e93ff80219687990c826ebade8f76e4e6de90b238e"
+  },
+  "id": "o0GItdogMrZVV8ZX",
+  "tags": []
+}

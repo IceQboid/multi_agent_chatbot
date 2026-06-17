@@ -1,0 +1,945 @@
+{
+  "name": "RBAC Internal Chatbot - STM as Cache - Engineering Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "question"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "72680efc-4b33-4a4d-96e9-5c6105c26164",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 30000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2800,
+        1072
+      ],
+      "id": "907cd4f5-b360-4e38-b4c7-409baaed0cd1",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Use the tool to think about engineering context. Use it when complex reasoning or some cache memory is needed."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        3472,
+        1072
+      ],
+      "id": "4169a49d-12f5-4e82-9163-2f93826e90e6",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        192
+      ],
+      "id": "52ad8b0f-4f67-4f1d-9f98-9561097e718a",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.question }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Rewrite the user question into a precise engineering search query. Do not add explanations. Use engineering terminology. Return only the rewritten query."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        576,
+        0
+      ],
+      "id": "c2d35787-658c-4d24-a96e-1dcbd8b7aa31",
+      "name": "Reformulate Query"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are the ENGINEERING IMAGE AGENT.\n\nYour role is to COLLECT and DESCRIBE relevant engineering diagrams,\nfigures, and visual references from the knowledge base using the\n`imageStore` tool.\n\nYou do NOT interpret, calculate, or infer engineering meaning.\n\nYou ONLY identify, extract, and describe what visual materials exist.\n\nYour output will be used by a downstream agent to form the final answer.\n---\n\n## CORE RULE (MANDATORY)\n\nYou MUST use the `imageStore` tool.\nYou must NOT invent or imagine diagrams.\nYou MUST rely strictly on retrieved content.\nIf no relevant images are found, say so explicitly.\n\n---\n\n## WHAT YOU HANDLE\n\nIdentifying chunks that contain:\nDiagrams\nFigures\nVisual references\nImage URLs\nCaptions\n\nExtracting:\nWhat the diagram is titled\nWhat it visually represents (objective description)\nWhere it comes from (document, section, page)\n\nIgnoring unrelated surrounding text\n\n---\n\n## WHAT YOU MUST NOT DO\n\nYou must NOT:\n- Extract numerical specifications unless explicitly shown\n- Perform calculations\n- Interpret beyond what the diagram shows\n- Reference textual specs unless included with the image\n- Guess what a diagram means\n\n---"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        704
+      ],
+      "id": "9d578c0c-dc84-4e3a-a9f6-1ecf3b03a314",
+      "name": "Images agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are the ENGINEERING TEXT AGENT.\n\nYour role is to COLLECT and EXTRACT relevant textual engineering\ninformation from the knowledge base using the `textStore` tool.\n\nYou do NOT interpret, calculate, or infer engineering meaning.\n\nYou ONLY identify, extract, and summarize factual text content\npresent in the retrieved documents.\n\nYour output will be consumed by a downstream agent to form the final answer.\n\n---\n\n## CORE RULE (MANDATORY)\n\nYou MUST NOT add knowledge that is not explicitly present.\nYou MUST NOT interpret or explain engineering intent.\nYou MUST rely strictly on retrieved content.\n---\n\n## WHAT YOU HANDLE\n\nYou retrieve:\n- Engineering specifications\n- Standards and clauses\n- Numerical limits and ranges\n- Material properties\n- Design rules\n- Installation requirements (textual)\n\n---\n\n## WHAT YOU MUST NOT DO\n\nYou must NOT:\n- Explain images or diagrams\n- Assume values not present\n- Perform engineering calculations\n- Add opinions or interpretations\n- Answer commercial or deal questions\n- Reference files outside the knowledge base\n\n---\n\n\n\n## IMPORTANT BEHAVIOR\n\n- Be precise and minimal\n- Extract, do not explain\n- Preserve original meaning\n\nYou must follow these rules every time.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1056,
+        1216
+      ],
+      "id": "bafc7a0f-40da-45fa-8e8b-ef631c0f65d5",
+      "name": "Text agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 30000,
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        1168
+      ],
+      "id": "f7397e41-e7e7-48e2-80d5-09974631477d",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to collect images for the engineering context",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": 10,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        880
+      ],
+      "id": "1b027a07-7252-4cb8-a002-e3e755ca2f2f",
+      "name": "imageStore",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dQjP5x9FQqFxo22C",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to collect textual context for the engineering topic",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": 10,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        1440
+      ],
+      "id": "19ffebfd-1f90-449e-9151-e91beaab3712",
+      "name": "textStore",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dQjP5x9FQqFxo22C",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        1392
+      ],
+      "id": "b89d4eb5-f0cd-45c4-a097-d52a6544b274",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"diagrams\": [\n    {\n      \"title\": \"<ADD>\",\n      \"visual_description\": \"<ADD>\",\n      \"image_url_or_ref\": \"<ADD>\",\n      \"caption\": \"<ADD>\",\n      \"source\": {\n        \"document\": \"<ADD>\",\n        \"section\": \"<ADD>\",\n        \"page\": \"<ADD>\"\n      }\n    }\n  ],\n  \"confidence\": \"high | medium | low\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1216,
+        912
+      ],
+      "id": "1623c4dc-d2d6-42e0-852e-44a89597d76b",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "55b86299-d7db-487c-b31a-894b48085b72",
+              "name": "retrievedimages",
+              "value": "={{ $json.output }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1744,
+        704
+      ],
+      "id": "78691910-4070-4298-84e4-0ae478b4db31",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"text_specs\": [\n    {\n      \"fact\": \"<ADD>\",\n      \"context\": \"<ADD>\"\n    }\n  ],\n  \"confidence\": \"high | medium | low\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1472,
+        1424
+      ],
+      "id": "5f00af7f-142a-4dcd-b417-1ea2abadb1f6",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "55b86299-d7db-487c-b31a-894b48085b72",
+              "name": "retrievedTexts",
+              "value": "={{ $json.output }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1696,
+        1216
+      ],
+      "id": "c0aa3c79-9400-4532-a208-de88be43786c",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2112,
+        928
+      ],
+      "id": "7a2aedb9-049a-43e8-8aea-5198b8ac26f6",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "retrievedimages"
+            },
+            {
+              "fieldToAggregate": "retrievedTexts"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        928
+      ],
+      "id": "f909bd31-a6c7-4c06-9f62-ff56dc981b91",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "description": "Use the tool to think about something. Use it when complex reasoning or some cache memory is needed."
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        1376
+      ],
+      "id": "65640ab2-3385-4905-8250-f869bfda7481",
+      "name": "Think1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        3376,
+        1424
+      ],
+      "id": "9c15d4f7-d775-4ec1-8029-2e023b3d0204",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to answer civil engineering questions",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": 10,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        3280,
+        1216
+      ],
+      "id": "adcd2576-da6a-4087-883f-06e931b90d6c",
+      "name": "knowledgeBase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dQjP5x9FQqFxo22C",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Useful to answer question. ",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": 20,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1536,
+        208
+      ],
+      "id": "2fdb5138-16b2-4977-8a9a-41cd276baacf",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dQjP5x9FQqFxo22C",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1312,
+        208
+      ],
+      "id": "9bf325af-1d38-47fd-b942-03c2c8294fbf",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1536,
+        400
+      ],
+      "id": "4b91a4f5-4d96-46dd-be89-a62064e8fe3a",
+      "name": "Embeddings OpenAI2",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=You are a helpful assistant.\n\nYour role is to answer questions exclusively using information retrieved from the Supabase vector store.\nDo not answer using prior model knowledge or external sources.\nAll responses must be grounded only in the retrieved content.\n\n---\n\n### IMAGE HANDLING RULES\n\nWhen retrieved content includes image URLs:\n\n- Display the image whenever it is directly relevant to the user's question.\n- The image must clearly match the topic being asked.\n- Do not display images that are unrelated or weakly related.\n- If an image is decorative, irrelevant, or a general manual logo → Ignore it.\n- If the user explicitly asks for an image, provide it only if the vector store contains a matching image.\n  - If no matching image exists, answer with text and state:\n    \"I am sorry, I was not able to find images for this topic.\"\n- Never ask the user whether they want images.\n- Your decision must be automatic based on relevance.\n- If multiple related images are retrieved, display only the ones that directly support the answer.\n\n---\n\n### ANSWERING RULES\n\n- Use only retrieved Supabase vector store results.\n- If retrieved text is insufficient, incomplete, or ambiguous, respond strictly based on what was retrieved.\n- Never supplement your answer with prior model knowledge or assumptions.\n- If no relevant results are retrieved, respond:\n  \"I’m sorry, I do not have information related to this topic from the retrieved documents.\"\n- Do not hallucinate, fill gaps, or infer anything not explicitly present in the retrieved content.\n- Keep responses clear, concise, and directly tied to the retrieved data.\n\n---\n\n### WHEN NO IMAGE IS AVAILABLE\n\nIf the user’s question naturally expects an image (e.g., diagrams, drawings, figures), but:\n\n- The vector store returns no images, or\n- The images retrieved do not match the topic,\n\nThen respond:\n\n\"I am sorry, I was not able to find images for this topic, but here is the information I found:\"\n\nThen provide the text-only answer.\n\n---\n\n### WHEN PROVIDING IMAGES\n\nWhen showing an image:\n\n- Display the image URL or embed the image.\n- Include a short caption describing what the image represents.\n- Ensure the caption is derived strictly from retrieved text.\n\n---\n\nAlways follow these rules exactly. Never break them.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1312,
+        0
+      ],
+      "id": "ac1bfdad-04f5-48ef-87e1-5f0734f1fdb5",
+      "name": "simplified agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Original Ask: {{ $('Reformulate Query').item.json.text }}\n",
+        "options": {
+          "systemMessage": "=You are the FINAL COMPOSER AGENT.\n\nYour role is to produce the FINAL USER-FACING ANSWER\nby combining outputs from:\n- ENGINEERING TEXT AGENT (text_specs)\n- ENGINEERING IMAGE AGENT (image URLS and reference)\n\nYou do NOT call external tools.\nYou do NOT retrieve new information.\nYou do NOT hallucinate or infer missing facts.\n\nYou ONLY synthesize, organize, and explain the provided evidence. Ensure the URL is passed when an image is present. \n\n---\n\n## INPUTS YOU WILL RECEIVE\n\nYou may receive:\n1. Extracted textual specifications (facts)\n2. Extracted diagram descriptions\n3. Confidence levels from both agents\n4. The original user question\n\nSome inputs may be empty.\n\n---\n\n## TOOLS YOU MUST USE\n\n- You should use the knowledgeBase tool to answer the question with relevant text and images. Always return the image URL if present within the retrieved chunks\n\n---\n## YOUR RESPONSIBILITIES\n\nYou must:\n- Decide what to present based on evidence\n- Explain facts in clear engineering language\n- Use diagrams only to support or illustrate text\n- Diagrams must always have \"image_url_or_ref\" AKA the image URL - not just textual explanation\n- If diagrams are used, you MUST display their image URLs\n\n## ANSWER STRUCTURE (STRICT)\n\nYour response MUST follow this structure:\n\n1. **Direct Answer**\n2. **Supporting Details**\n3. **Diagram Reference - \"IMAGE URL\"**\n4. **Limitations / Notes** (if applicable)\n\n## HOW TO MERGE INPUTS\n\n### Case A — Text + Diagrams present\n- Use text to state facts\n- Use diagrams to illustrate\n- Do NOT extract specs from diagrams unless explicitly labeled\n\n### Case B — Only Text present\n- Answer purely from text\n- Do NOT mention missing diagrams\n\n### Case C — Only Diagrams present\n- Describe what is shown\n- State that specifications are not provided\n\n### Case D — No Evidence\nRespond with:\n> “I am sorry, my knowledge does not contain information to answer this question at the moment.”\n\n---\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3104,
+        832
+      ],
+      "id": "5c7e51f4-f7c3-4c0b-ae51-79487b22c033",
+      "name": "Composer"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -288,
+        304
+      ],
+      "id": "1336f52b-c963-45ba-90c6-77c52c33adb9",
+      "name": "When chat message received",
+      "webhookId": "d207bd39-fe81-4ec0-a5ba-90cfafeb8129",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e81f8ea-e257-45d7-ab5a-caf768dc686b",
+              "name": "question",
+              "value": "={{ $json.chatInput }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        304
+      ],
+      "id": "da90703f-64c4-4b93-a9d8-dba0ef34f1e8",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        1424
+      ],
+      "id": "33c42b3d-5c41-4d48-8a80-7ede589a1802",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Q5lzt9WCiVSyty80",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-001"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        384
+      ],
+      "id": "6f03d546-0f82-43f5-95b0-b67a6bd2413e",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Q5lzt9WCiVSyty80",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        208
+      ],
+      "id": "b3af267b-781e-46b6-a430-090e72655854",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Q5lzt9WCiVSyty80",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "question": "Please provide relevant diagrams for bracket systems, including typical configurations, load directions, sectional views, and mounting details in a clear, illustrative format."
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Reformulate Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Composer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "Composer",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Reformulate Query",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reformulate Query": {
+      "main": [
+        [
+          {
+            "node": "simplified agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Images agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Text agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "imageStore": {
+      "ai_tool": [
+        [
+          {
+            "node": "Images agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "textStore": {
+      "ai_tool": [
+        [
+          {
+            "node": "Text agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "imageStore",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "textStore",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Images agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Images agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Text agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Composer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Images agent",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Text agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "knowledgeBase",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "knowledgeBase": {
+      "ai_tool": [
+        [
+          {
+            "node": "Composer",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "simplified agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "simplified agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Reformulate Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        []
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "cc4c86eb-1416-41f4-a93f-ce07947fe862",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d4b4d0eabe8fbefe07fcc9e93ff80219687990c826ebade8f76e4e6de90b238e"
+  },
+  "id": "WnGULlF5ZVyKKpfl",
+  "tags": []
+}

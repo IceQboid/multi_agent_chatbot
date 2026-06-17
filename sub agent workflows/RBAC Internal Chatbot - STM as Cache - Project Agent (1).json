@@ -1,0 +1,1023 @@
+{
+  "name": "RBAC Internal Chatbot - STM as Cache - Project Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "question"
+            },
+            {
+              "name": "intent"
+            },
+            {
+              "name": "projectContext",
+              "type": "any"
+            },
+            {
+              "name": "dealContext",
+              "type": "any"
+            },
+            {
+              "name": "userContext",
+              "type": "any"
+            },
+            {
+              "name": "session_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        16
+      ],
+      "id": "0659c119-f499-42d8-8b63-4b43deb4a7f9",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "194d7bdc-ced3-45cc-a472-43047bdaed65",
+              "name": "question",
+              "value": "={{ $json.question }}",
+              "type": "string"
+            },
+            {
+              "id": "009b5106-7550-4f8d-a3ae-38d88e76a9f6",
+              "name": "intent",
+              "value": "={{ $json.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "e6e8e622-87cd-4b50-96e6-df5c7986c949",
+              "name": "dealContext",
+              "value": "={{ $json.dealContext.parseJson() }}",
+              "type": "array"
+            },
+            {
+              "id": "efa3f2b1-8679-4f51-8d29-60448b598faf",
+              "name": "userContext",
+              "value": "={{ $json.userContext.parseJson() }}",
+              "type": "object"
+            },
+            {
+              "id": "5cc3f78c-b20e-4b6e-9026-031993857a53",
+              "name": "projectContext",
+              "value": "={{ $json.projectContext.parseJson() }}",
+              "type": "array"
+            },
+            {
+              "id": "4ef1559a-cff7-4780-bd5b-e50bb5fb807a",
+              "name": "session_id",
+              "value": "={{ $json.session_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        16
+      ],
+      "id": "82aea2fe-48b8-47fb-9ce5-6b6094ab8822",
+      "name": "Parse JSON"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2720,
+        288
+      ],
+      "id": "675f9f0e-40f7-428b-9e27-94958638bb26",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://backend.diyprefab.com/api/v1/project/get-projects",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.userContext.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        656,
+        192
+      ],
+      "id": "93613395-b919-41d7-8321-f2700cd07d92",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1296,
+        32
+      ],
+      "id": "ca3eba7c-4d88-4803-bd39-485a37b17098",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e4fa536-9e38-4a76-8d57-95be7d45d472",
+              "name": "projects_count",
+              "value": "={{ $json.meta.total_count }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        192
+      ],
+      "id": "a6cba13d-bd46-4c2d-aed8-dfc9552e8866",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2736,
+        80
+      ],
+      "id": "4aa912fa-e212-4574-9b65-58957d6da7e7",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "url": "https://backend.diyprefab.com/api/v1/users/get-users-company-by-id",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.userContext.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        544,
+        432
+      ],
+      "id": "d3d1becb-cb0d-4077-8c7f-7f65c4766341",
+      "name": "HTTP Request",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        832,
+        432
+      ],
+      "id": "14479661-b898-4a60-be47-06d88321f88d",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "employee_details",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        432
+      ],
+      "id": "8bc7c7bf-90f5-4f2f-9c58-7701783444b1",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1568,
+        48
+      ],
+      "id": "5bb5f378-2d05-4563-b46c-9eddb2701d4b",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://automation.diyprefab.com/mcp/0dac75d4-624f-4401-9ccb-dd0ce2760caa",
+        "serverTransport": "sse",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        3376,
+        304
+      ],
+      "id": "bc7bbc8d-c1f7-4a29-b651-9169d08474eb",
+      "name": "mcp_client"
+    },
+    {
+      "parameters": {
+        "url": "https://backend.diyprefab.com/api/v1/company/get-all-company?company_type=partner",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.userContext.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        528,
+        688
+      ],
+      "id": "6758be02-7135-4af3-a63d-6e0f3b217b81",
+      "name": "HTTP Request2",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        800,
+        688
+      ],
+      "id": "5950324e-1e2f-40dd-a902-470fef79cde2",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1888,
+        64
+      ],
+      "id": "3fa799cc-14fe-4478-a23b-b55ecc88c81b",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "verified_pending_companies",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        688
+      ],
+      "id": "2bb0fbcf-5a1b-40a0-a382-efee6cb90503",
+      "name": "Aggregate2"
+    },
+    {
+      "parameters": {
+        "url": "https://backend.diyprefab.com/api/v1/contact/get-all-contacts",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.userContext.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        928
+      ],
+      "id": "a04e9715-b4ae-4508-ac45-829ef584b05e",
+      "name": "HTTP Request3",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://backend.diyprefab.com/api/v1/users/get-all-employee-partner",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Parse JSON').item.json.userContext.token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        496,
+        1120
+      ],
+      "id": "21b12f71-70b4-4de8-8466-df9874df8942",
+      "name": "HTTP Request4",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "contact_details",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        944
+      ],
+      "id": "d13504e8-f441-42bf-aaeb-2ec443f0033b",
+      "name": "Aggregate3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        864,
+        944
+      ],
+      "id": "e2611467-52a0-46bf-8556-f783dde0054c",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2224,
+        80
+      ],
+      "id": "99e3d270-aa1b-4e2a-81f2-98fe2018ccde",
+      "name": "Merge4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=AI AGENT OUTPUT: {{ $json.output }}\n\nUSER QUESTION: {{ $('Aggregate').item.json.data[0].question }} \n\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=fact check the information provided and see if there any conflicts in the answer provided by the ai agent against the user question. \n\n\n\nYour output format must be in JSON. Remove the ``` (code block) markers and incorporate the content as plain text in the input before parsing:\nExample:\n    \"question\": User question\n\t\"status\": \"pass or fail\",\n\t\"criticism\": \"insert what is detected to be wrong and what the agent needs to fix\""
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        3600,
+        80
+      ],
+      "id": "b544e9ba-642e-41bb-aa5e-c4df3bc27034",
+      "name": "Fact_check",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n    \"question\": \"<Insert user question>\",\n    \"status\": \"fail\",\n    \"criticism\": \"The AI agent's response includes contacts created before the specified date 30/12/2025, which conflicts with the user query. Specifically, contacts 'Jesal Patel' (2025-12-31), 'Harish _test' (2025-12-31), 'kt L' (2025-12-29), 'hjj l' (2025-12-29), and 'sree n' (2025-12-26) are listed despite being created before 30/12/2025. Only contacts created after 30/12/2025 should be included.\"\n  }"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        3744,
+        288
+      ],
+      "id": "926e1ee9-1b20-42a7-bf5e-43cb955311d7",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3600,
+        288
+      ],
+      "id": "409bc21a-00b5-468b-b68d-9d5a74ff4816",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Q5lzt9WCiVSyty80",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "29ed34ef-61d4-4281-ae91-17b7f39822d5",
+              "leftValue": "={{ $runIndex }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "8c28a2ca-6689-4822-9740-2d2d0a38d234",
+              "leftValue": "={{ $json.output.status }}",
+              "rightValue": "pass",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4304,
+        272
+      ],
+      "id": "2b483c47-fba0-4e03-9453-3563e4d27350",
+      "name": "stop?"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User question: {{ $json.data[0].question }}\n\n---\nCriticism (if exists):\n{{ $('Fact_check').isExecuted ? \"Rejected Generated Response: \" + $(\"projectAgent\").last().toJsonString() + \" ------------- \" + \"Feedback from previous generated response:\" + $('Fact_check').last().toJsonString() : \"\"}}",
+        "options": {
+          "systemMessage": "=## Role\nYou are the **PROJECT AGENT** for the **Platform Provider** system.\n\nYour responsibility is to answer **project-related questions only**,\naccurately and securely, using **authorized project data and tools**.\n\nYou are a **read-only information agent**.\nYou do NOT perform actions, workflows, or scheduling.\n\n---\nThe time is {{ $now }}\n---\n\n## Scope of Responsibility (STRICT)\n\nYou handle **ONLY**:\n- Projects\n- Deals\n- Stages and milestones\n- Timelines and deadlines\n- Assignments and ownership\n- Project-level metadata and status\n- Partner, Customer and Employee details  \n  (Avoid backend details such as internal URLs, IDs, or system keys)\n\nIf a request does NOT fall into this scope, it is **out of scope**.\n\n---\n\n## Inputs You Receive\n\nYou are provided with:\n\n- **Deal Context - Hide the deal IDs and do not ask or provide the user the same**  \n  {{ JSON.stringify($json.data[0].dealContext) }}\n\n- **Projects Context - Hide the project IDs and do not ask or provide the user the same***  \n  {{ JSON.stringify($json.data[0].projectContext) }}\n\n- **Project Count**  \n  {{ $json.data[1].projects_count }}\n\n- **Employee Details Source (AUTHORITATIVE)**  \n  {{ JSON.stringify($json.data[2].employee_details) }}\n\n\n- **Verified/Pending Companies for Admin**\n  {{ JSON.stringify($json.data[3].verified_pending_companies) }}\n\n- **Contact Details Source**  \n  {{ JSON.stringify($json.data[4].contact_details) }}\n\n- **mcp_client tool**  \n  This tool is the **single source of truth** for:\n  - project data\n  - deal data\n  - contact data\n\n- **Criticism**\n  This input will let you know if there are any flaws in your answer, you must take the feedback seriously and correct it. if information is excluded or modified because of the criticism, DO NOT MENTION IT. DO NOT MENTION EXCLUDED/MODIFIED DETAILS AFTER CORRECTION. \n---\n\n## Authority & Trust Rules (CRITICAL)\n\n- Results returned by **mcp_client** are **AUTHORITATIVE**\n- NEVER override, merge, reinterpret, or estimate tool results\n- If memory, prior turns, or assumptions conflict with tool output:\n  **the tool output ALWAYS wins**\n\n---\n\n## Numeric Grounding Rules (MANDATORY)\n\nWhen using results from **mcp_client**:\n\n- NEVER estimate, approximate, or infer counts\n- NEVER round numbers\n- NEVER merge counts from different sources\n- Counts MUST be computed ONLY as:\n  \n  `exact_length = number of items in the returned array`\n\nIf the tool returns **25 records as per the user name**, you MUST say **“25”**.\n\nIf the count is unclear:\n- State that explicitly\n- Do NOT guess\n\n---\n\n## Deduplication Rules (MANDATORY)\n\n- Employees and contacts are **separate entities**\n- Do NOT combine or sum them unless the user explicitly asks\n- Report counts **per source**\n- Never deduplicate silently\n\nExample:\n> “There are 25 contacts and 8 employees.”\n\n---\n\n## Ambiguity Handling Rules (MANDATORY)\n\nYou MUST STOP and ask for clarification if:\n\n- A name appears in multiple datasets\n- Multiple projects match the request - in this case interpret it and then provide it and then ask for clarification if that is what they are looking for. \n\n- `project_id` is null and more than one project exists\n- Duplicate or conflicting records are returned \n- The user says “this”, “that”, or “the previous one” and STM cannot resolve it confidently\n\nRequired response pattern:\n> “There are multiple matches. Could you clarify which one you mean?”\n\nYou MUST NOT guess or assume.\n\n---\n\n## Out-of-Scope Handling (CRITICAL)\n\nYou CANNOT:\n- Book appointments\n- Schedule meetings\n- Create calendar entries\n- Trigger workflows\n- Perform actions outside data retrieval\n\nIf the user asks for any of the above, respond with:\n\n> “I can help with project and deal information, but this request is outside project-related support.”\n\nDo NOT ask follow-up questions in such cases.\n\n---\n\n## Failure Conditions\n\nUse ONLY when:\n- Required data is missing\n- The tool returns no results\n- The request cannot be resolved even after clarification\n\nResponse:\n> “The requested project information is not available at this time.”\n\n---\n\n## Tone & Style\n\n- Professional\n- Clear\n- Concise\n- Business-appropriate\n- No speculation\n- No assumptions\n\n---\n\n## Golden Rule\n\n> Answer **only** what is explicitly known from authorized data sources.  \n> If unsure, **provide the relevant details and follow up to make sure if it is what they are looking for**.  \n> If out of scope, **refuse cleanly**.\n> If the user details has \"verified\", \"active\" or such statuses and if the user inquires about it, only return those users from the collected data. \n> For queries demanding time sensitive information, look for \"created_at\" \"updated_at\" parameters to ensure the right information is being passed. The time now is {{ $now }}\n\nFollow these rules for every response.\n",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        3104,
+        80
+      ],
+      "id": "e96e0ff2-7502-450f-b650-62ac94d48204",
+      "name": "projectAgent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "125fa9af-343e-478d-9805-c3e6c63ac6ca",
+              "leftValue": "={{ $json.output.status }}",
+              "rightValue": "fail",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4000,
+        80
+      ],
+      "id": "9b2c6f53-c4a6-4acc-89a2-a752fb8acaa1",
+      "name": "false?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3e32d028-32c9-4533-b087-9d30fb1af5e8",
+              "name": "output",
+              "value": "={{ $('projectAgent').item.json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5088,
+        96
+      ],
+      "id": "5e23e92e-b67b-4bd9-9759-1de0a08671ce",
+      "name": "Final Answer"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Aggregate').first().json.data[0].session_id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        3200,
+        304
+      ],
+      "id": "d3219bc6-2d94-439d-b353-c4a6382e9bc3",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "xS735LtobgpsJOiJ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2912,
+        288
+      ],
+      "id": "d51510b3-939a-4206-823b-7cfcdcaaea95",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Q5lzt9WCiVSyty80",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "question": "hi",
+          "intent": "User greeted the assistant.",
+          "projectContext": "[{\"created_at\":\"2026-01-29T10:43:30\",\"updated_at\":\"2026-01-29T10:43:30\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT851924\",\"project_name\":\"Design\",\"client_company_name\":\"Classic\",\"partner_id\":\"695e3b8f8970603169f2e308\",\"partner_name\":\"Kavya N\",\"location\":{\"address\":\"bangalore\",\"pincode\":\"990012\",\"state\":\"karnataka\",\"city\":\"bangalore\",\"latitude\":null,\"longitude\":null,\"area\":\"bangalore\"},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"5555666666\"}],\"email\":\"meenu@gmail.com\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"697aec789fc55524e89805c1\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Kavya\",\"last_name\":\"N\",\"email\":\"kavyasreen92@gmail.com\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"0998000800\"}],\"account_type\":\"partner\",\"profile_url\":null}},{\"created_at\":\"2026-01-13T15:09:09\",\"updated_at\":\"2026-01-13T15:09:09\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT055093\",\"project_name\":\"deal str\",\"client_company_name\":\"str\",\"partner_id\":\"695e3b8f8970603169f2e308\",\"partner_name\":\"Kavya N\",\"location\":{\"address\":\"bangalore\",\"pincode\":\"889900\",\"state\":\"karnataka\",\"city\":\"bangalore\",\"latitude\":null,\"longitude\":null,\"area\":\"bangalore\"},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"8800006670\"}],\"email\":\"dipa@gmail.com\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"696612bb140775a6ab4be600\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Kavya\",\"last_name\":\"N\",\"email\":\"kavyasreen92@gmail.com\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"0998000800\"}],\"account_type\":\"partner\",\"profile_url\":null}},{\"created_at\":\"2026-01-05T10:33:54\",\"updated_at\":\"2026-01-05T10:33:54\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT539967\",\"project_name\":\"vsdeal\",\"client_company_name\":\"vid comp\",\"partner_id\":\"692720211e26bc74fe51d0c2\",\"partner_name\":\"Pushpendu Jana\",\"location\":{\"address\":\"asd street\",\"pincode\":\"893425\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121200\"}],\"email\":\"vidya@gmail.com\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"695b46381d4323eab54fb01d\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT499717\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}},{\"created_at\":\"2025-12-09T12:13:31\",\"updated_at\":\"2025-12-09T12:13:31\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT547728\",\"project_name\":\"ght\",\"client_company_name\":\"HFC\",\"partner_id\":\"692d93b1b368c11d49e83f9a\",\"partner_name\":\"pushpendu jana\",\"location\":{\"address\":\"sd\",\"pincode\":\"765348\",\"state\":\"maharastra\",\"city\":\"dd\",\"latitude\":null,\"longitude\":null,\"area\":null},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121280\"}],\"email\":\"avb@gmail.com\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"6937c5100671779eb98e3510\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT499717\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null},{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[{\"stage_id\":\"STG8467735\",\"can_approve_deliverables\":false,\"can_modify_timeline\":false,\"can_assign_tasks\":false,\"can_upload_files\":true,\"can_view_files\":true}]},\"partner_details\":{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870557\"},{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"account_type\":\"customer\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/HFCN0CJY7E/users/692d93b1b368c11d49e83f9a/profile_images/f077c46d-0626-42c7-b2be-5c64d87746f1.jpg\"}},{\"created_at\":\"2025-12-08T14:22:56\",\"updated_at\":\"2025-12-08T14:22:56\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT259369\",\"project_name\":\"building\",\"client_company_name\":\"buildcomp\",\"partner_id\":\"692720211e26bc74fe51d0c2\",\"partner_name\":\"Pushpendu Jana\",\"location\":{\"address\":\"abc street\",\"pincode\":\"765348\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"abc\"},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121266\"}],\"email\":\"kavyasree@ops.versalence.ai\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"693691e60671779eb98e33bc\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}},{\"created_at\":\"2025-12-04T18:47:07\",\"updated_at\":\"2025-12-04T18:47:07\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT451410\",\"project_name\":\"testdeal1\",\"client_company_name\":\"testcomp\",\"partner_id\":\"692720211e26bc74fe51d0c2\",\"partner_name\":\"Pushpendu Jana\",\"location\":{\"address\":\"hh\",\"pincode\":\"765348\",\"state\":\"g\",\"city\":\"f\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"3456789012\"}],\"email\":\"pushpendu.jana@engg.versalence.ai\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"693189d1d33c4cbe5b9c368a\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null},{\"department_id\":\"DEPT882105\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}}]",
+          "dealContext": "null",
+          "userContext": "{\"userId\":\"693693f30671779eb98e33ce\",\"name\":\"kas N\",\"email\":\"kavyasree@ops.versalence.ai\",\"userRole\":\"employee\",\"account_type\":\"platform_provider\",\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTM2OTNmMzA2NzE3NzllYjk4ZTMzY2UiLCJlbWFpbCI6Imthdnlhc3JlZUBvcHMudmVyc2FsZW5jZS5haSIsInJvbGUiOiJlbXBsb3llZSIsInVzZXJfdHlwZSI6InBsYXRmb3JtX3Byb3ZpZGVyIiwic2Vzc2lvbl9pZCI6ImE1M2M0Yjg5LTZiZjgtNDc4MS1iOTI1LTViOThjNzkyNTk4MyIsImV4cCI6MTc3MTMwNzcyNn0.qECNVaaUippZKltdo4pWLvljJ25Vun1QlFHn_B1TRW8\"}",
+          "session_id": "e6121ef3-a364-4284-9b2a-c760b7222827"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "projectAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "mcp_client": {
+      "ai_tool": [
+        [
+          {
+            "node": "projectAgent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request4": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Aggregate3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate3": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Fact_check",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Fact_check",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fact_check": {
+      "main": [
+        [
+          {
+            "node": "false?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "projectAgent": {
+      "main": [
+        [
+          {
+            "node": "Fact_check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "stop?": {
+      "main": [
+        [
+          {
+            "node": "Final Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "projectAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "false?": {
+      "main": [
+        [
+          {
+            "node": "stop?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Final Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "projectAgent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "projectAgent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Kolkata",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "b9baf744-47bb-4729-9766-402c0f361c30",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d4b4d0eabe8fbefe07fcc9e93ff80219687990c826ebade8f76e4e6de90b238e"
+  },
+  "id": "4QqJUX55ExP6Pk3A",
+  "tags": []
+}

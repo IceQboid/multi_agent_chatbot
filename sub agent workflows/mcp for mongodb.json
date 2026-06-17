@@ -1,0 +1,190 @@
+{
+  "name": "mcp for mongodb",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "0dac75d4-624f-4401-9ccb-dd0ce2760caa"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        -368,
+        16
+      ],
+      "id": "73059ded-3f7d-4fd3-bc23-98d22926e119",
+      "name": "MCP Server Trigger",
+      "webhookId": "0dac75d4-624f-4401-9ccb-dd0ce2760caa"
+    },
+    {
+      "parameters": {
+        "collection": "departments",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        240
+      ],
+      "id": "d0e83faa-69f5-4ed0-a2c4-cffc9610c400",
+      "name": "Find deparments",
+      "credentials": {
+        "mongoDb": {
+          "id": "9oilxeegc2TIUctv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "deals",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        -560,
+        240
+      ],
+      "id": "ef502669-d21f-4dc8-bedb-e3b454ef5cfb",
+      "name": "find deals",
+      "credentials": {
+        "mongoDb": {
+          "id": "9oilxeegc2TIUctv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "projects",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        240
+      ],
+      "id": "f6f52888-6636-47c0-8099-a2bbab853a7f",
+      "name": "find projects",
+      "credentials": {
+        "mongoDb": {
+          "id": "9oilxeegc2TIUctv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "companies_customers",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        240
+      ],
+      "id": "89f67ca5-6905-4994-b31c-db71d0706320",
+      "name": "find contacts",
+      "credentials": {
+        "mongoDb": {
+          "id": "9oilxeegc2TIUctv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "companies",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        32,
+        240
+      ],
+      "id": "5c930649-7a8d-4caf-b130-92eca59754af",
+      "name": "find companies",
+      "credentials": {
+        "mongoDb": {
+          "id": "9oilxeegc2TIUctv",
+          "name": "MongoDB account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Find deparments": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find deals": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find projects": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find contacts": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "find companies": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "edc896d8-b572-4be9-be7a-59aa38685149",
+  "meta": {
+    "instanceId": "d4b4d0eabe8fbefe07fcc9e93ff80219687990c826ebade8f76e4e6de90b238e"
+  },
+  "id": "8stCG0b5agubjf76",
+  "tags": []
+}

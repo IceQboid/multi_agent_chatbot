@@ -1,0 +1,311 @@
+{
+  "name": "RBAC Internal Chatbot - STM as Cache - Files Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Query"
+            },
+            {
+              "name": "user_context",
+              "type": "any"
+            },
+            {
+              "name": "deal_context",
+              "type": "any"
+            },
+            {
+              "name": "key_words"
+            },
+            {
+              "name": "allowedProjects"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        -48
+      ],
+      "id": "46a96ca7-13e6-47e1-a134-bafe8839aeac",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1296,
+        544
+      ],
+      "id": "0c0cd697-bb91-43b7-a57d-4d0e0ef5a2c8",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('When Executed by Another Workflow').item.json.Query }}",
+        "options": {
+          "systemMessage": "=You are the FILE AGENT in a multi-agent partner assistant system.\n\nYou answer questions ONLY by retrieving and interpreting files\nthat the user is explicitly allowed to access based on metadata and RBAC context\n\n## YOUR CORE PRINCIPLE (NON-NEGOTIABLE)\n\nMetadata decides access.\nSimilarity search is SECONDARY.\n\nYou MUST NEVER retrieve or reason over any file\nunless it has been explicitly approved and given by metadata filtering.\n\n## WHAT YOU HANDLE\n\nYou handle questions such as:\n- “What does the drawing say about…”\n- “Check the uploaded PDF”\n- “What is mentioned in the Excel/QRF”\n- “Summarize the document”\n- “Compare two uploaded files”\n- “Extract information from project files”\n\nThese questions MUST be answered ONLY from accessible files.\n\n---\n\n## CONTEXT YOU WILL RECEIVE\n\nYou will receive:\n- User question\n\n- RBAC context (role, account type):\n  {{ JSON.stringify($json.user_context) }}\n\n- Allowed projects for the user:\n{{ JSON.stringify($json.allowedProjects) }}\n\nYou MUST rely ONLY on this context.\n\n---\n\n## FILE RETRIEVAL RULES (CRITICAL)\n\n1. Files are retrieved ONLY via metadata filtering\n2. Metadata filtering may include:\n   - project_id\n   - company_id\n   - department_id (nullable)\n   - stage_id (nullable)\n   - file_id (if explicitly referenced)\n3. Similarity search results MUST already be constrained by metadata\n4. If no files are returned → do NOT attempt to answer\n\n## FAILURE HANDLING (MANDATORY)\n\nIf:\n- No accessible files are found\n- Retrieved files do not contain the requested information\n\nYou MUST respond with one of the following (choose the most accurate):\n\n- “I couldn’t find any files you have access to related to this request.”\n- “The uploaded documents do not contain this information.”\n- “I don’t see this detail mentioned in the available files.”\n\nDO NOT guess.\n\n---\n\nYou must follow these rules for EVERY response."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        1584,
+        -48
+      ],
+      "id": "a48c34e1-484d-4efb-8727-cd110a14b0ab",
+      "name": "file agent"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this tool to search uploaded file content for the user ",
+        "tableName": {
+          "__rl": true,
+          "value": "projectfiles",
+          "mode": "list",
+          "cachedResultName": "projectfiles"
+        },
+        "topK": 10,
+        "options": {
+          "queryName": "match_projectfiles",
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "user_id",
+                "value": "={{ $('Parse JSON').item.json.user_context[0].userId }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1744,
+        208
+      ],
+      "id": "d17aa2c1-6a74-4c3e-acf2-8ce6b987589a",
+      "name": "document store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "dQjP5x9FQqFxo22C",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1c559fe-8a9a-402c-a846-566fce092dc4",
+              "name": "user_context",
+              "value": "={{ $json.user_context.parseJson() }}",
+              "type": "array"
+            },
+            {
+              "id": "a2b21e6b-ed08-4bf2-b8a7-0eb7ef276669",
+              "name": "deal_context",
+              "value": "={{ $json.deal_context.parseJson() }}",
+              "type": "array"
+            },
+            {
+              "id": "5c5ea9f8-880e-4cbe-9512-6a5ad36401a1",
+              "name": "Query",
+              "value": "={{ $json.Query }}",
+              "type": "string"
+            },
+            {
+              "id": "a8d20156-efae-4f98-a7cb-fc6e4ba4482d",
+              "name": "intent",
+              "value": "={{ $json.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "f4aab308-583e-4811-9097-71e9352ef2f1",
+              "name": "allowedProjects",
+              "value": "={{ $json.allowedProjects.parseJson() }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        -48
+      ],
+      "id": "830e5236-ba04-4041-a015-2e6b94fa8f16",
+      "name": "Parse JSON"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1008,
+        256
+      ],
+      "id": "603161e9-0716-44c1-a6bf-821c0ebf87c0",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        208
+      ],
+      "id": "b82abce2-29eb-43b0-b159-890520cf3422",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Q5lzt9WCiVSyty80",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1744,
+        384
+      ],
+      "id": "a7cce00a-2084-4ec7-b49a-4e5cd29b34ff",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Q5lzt9WCiVSyty80",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "Query": "Can I know the building dimensions of my building deal?",
+          "user_context": "[{\"userId\":\"692720211e26bc74fe51d0c2\",\"name\":\"Pushpendu Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"userRole\":\"partner\",\"account_type\":\"partner\",\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTI3MjAyMTFlMjZiYzc0ZmU1MWQwYzIiLCJlbWFpbCI6InB1c2hwZW5kdS5qYW5hQGVuZ2cudmVyc2FsZW5jZS5haSIsInJvbGUiOiJhZG1pbiIsInVzZXJfdHlwZSI6InBhcnRuZXIiLCJzZXNzaW9uX2lkIjoiOTgzMjM3MzEtOTVlZS00ZmEzLWIxNmQtOWZlNjdjMDk2ODg0IiwiZXhwIjoxNzY3MDA4NTMxfQ.2KlsfrcBGGDN22Oo0a0gCYKHRN25OqdDzNf-2spJ1Zg\"}]",
+          "deal_context": "[[{\"deal_id\":\"693691e60671779eb98e33bc\",\"deal_company_name\":\"buildcomp\",\"deal_location\":{\"address\":\"abc street\",\"pincode\":\"765348\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"abc\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"693691e40671779eb98e33b8\"],\"hubspot_deal_id\":\"235736101620\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT259369\",\"deal_name\":\"building\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-08T08:52:54\",\"updated_at\":\"2025-12-08T08:52:56\",\"acknowledgement\":true,\"close_date\":\"2026-04-10T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"kavya\",\"last_name\":\"N\",\"email\":\"kavyasree@ops.versalence.ai\",\"hubspot_contact_id\":\"346033282753\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"buildcomp\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121266\"}],\"created_at\":\"2025-12-08T08:52:52.692000\",\"updated_at\":\"2025-12-08T08:52:52.692000\",\"verified_by\":null,\"contact_id\":\"693691e40671779eb98e33b8\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"693189d1d33c4cbe5b9c368a\",\"deal_company_name\":\"testcomp\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"765348\",\"state\":\"g\",\"city\":\"f\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"693189cfd33c4cbe5b9c3686\"],\"hubspot_deal_id\":\"232719607501\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT451410\",\"deal_name\":\"testdeal1\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-04T13:17:05\",\"updated_at\":\"2025-12-04T13:17:07\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"ags\",\"last_name\":\"a\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"hubspot_contact_id\":\"311628965610\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"testcomp\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"3456789012\"}],\"created_at\":\"2025-12-04T13:17:03.128000\",\"updated_at\":\"2025-12-04T13:17:03.128000\",\"verified_by\":null,\"contact_id\":\"693189cfd33c4cbe5b9c3686\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"692e9a37b368c11d49e84063\",\"deal_company_name\":\"xsd\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"345359\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"692e9a35b368c11d49e8405f\"],\"hubspot_deal_id\":\"231385284334\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT884838\",\"deal_name\":\"housing\",\"deal_value\":6000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":\"housing project near the city and near to available road and transport facility\",\"tags\":[],\"created_at\":\"2025-12-02T07:50:15\",\"updated_at\":\"2025-12-02T07:50:17\",\"acknowledgement\":true,\"close_date\":\"2026-05-22T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"ka\",\"last_name\":\"g\",\"email\":\"rtgy@gmail.com\",\"hubspot_contact_id\":\"339985772257\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"xtt\",\"account_status\":\"verified\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121234\"},{\"phone_number_extension\":\"91\",\"phone_number\":\"6743212321\"}],\"created_at\":\"2025-12-02T07:50:13.303000\",\"updated_at\":\"2025-12-02T07:50:13.303000\",\"verified_by\":{\"user_id\":\"692720b6cf400c5a58a63e19\",\"name\":\"Tester\",\"verified_at\":\"2025-12-03T08:39:10.568000\"},\"contact_id\":\"692e9a35b368c11d49e8405f\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"692e9318b368c11d49e8404c\",\"deal_company_name\":\"qw\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"345356\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"692e91f4b368c11d49e84042\"],\"hubspot_deal_id\":\"231357674224\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT025181\",\"deal_name\":\"Apartment\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-02T07:19:52\",\"updated_at\":\"2025-12-02T08:15:42\",\"acknowledgement\":true,\"close_date\":\"2026-04-24T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"Ab\",\"last_name\":\"S\",\"email\":\"hgj@gmail.com\",\"hubspot_contact_id\":\"339998720734\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":\"Supervisor1\",\"tags\":null,\"notes\":null,\"customer_company_name\":\"qwf\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"2345678909\"},{\"phone_number_extension\":\"91\",\"phone_number\":\"6543219089\"}],\"created_at\":\"2025-12-02T07:15:00.019000\",\"updated_at\":\"2025-12-02T07:15:00.019000\",\"verified_by\":null,\"contact_id\":\"692e91f4b368c11d49e84042\"}],\"permission\":\"ADMIN\"},{\"deal_id\":\"692728521e26bc74fe51d0e1\",\"deal_company_name\":\"XYZ\",\"deal_location\":{\"address\":\"masgab nagar, patharpratima\",\"pincode\":\"743371\",\"state\":\"west bengal\",\"city\":\"south 24 parganas\",\"latitude\":null,\"longitude\":null,\"area\":\"Patharpratima Market\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"6927284f1e26bc74fe51d0dd\"],\"hubspot_deal_id\":\"227685163740\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT891162\",\"deal_name\":\"Shopping Mall\",\"deal_value\":7500000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":\"1. Choose a location with high foot traffic and easy accessibility.\\n2. Plan the budget and secure proper funding before starting.\\n3. Create a modern and safe architectural design with professionals.\\n4. Include anchor stores, a food court, and entertainment zones.\\n5. Ensure essential facilities like parking, security, elevators, and escalators.\\n\",\"tags\":[\"Urgent\"],\"created_at\":\"2025-11-26T16:18:26\",\"updated_at\":\"2025-11-26T16:18:28\",\"acknowledgement\":true,\"close_date\":\"2026-01-01T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"Priya\",\"last_name\":\"Sen\",\"email\":\"priyasen@gmail.com\",\"hubspot_contact_id\":\"335181704953\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"XYZ\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9745687912\"}],\"created_at\":\"2025-11-26T16:18:23.925000\",\"updated_at\":\"2025-11-26T16:18:23.925000\",\"verified_by\":null,\"contact_id\":\"6927284f1e26bc74fe51d0dd\"}],\"permission\":\"ADMIN\"}]]",
+          "key_words": "building dimensions, building deal",
+          "allowedProjects": "[{\"project_id\":[\"PROJECT259369\",\"PROJECT451410\",\"PROJECT884838\",\"PROJECT025181\",\"PROJECT891162\"],\"deal_id\":[\"693691e60671779eb98e33bc\",\"693189d1d33c4cbe5b9c368a\",\"692e9a37b368c11d49e84063\",\"692e9318b368c11d49e8404c\",\"692728521e26bc74fe51d0e1\"],\"deal_name\":[\"building\",\"testdeal1\",\"housing\",\"Apartment\",\"Shopping Mall\"]}]"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        []
+      ]
+    },
+    "document store": {
+      "ai_tool": [
+        [
+          {
+            "node": "file agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "file agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "file agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "document store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f2469c7f-bb46-4775-b6ed-50b8b6f3f239",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d4b4d0eabe8fbefe07fcc9e93ff80219687990c826ebade8f76e4e6de90b238e"
+  },
+  "id": "5OGnfePKAIHRlekw",
+  "tags": []
+}

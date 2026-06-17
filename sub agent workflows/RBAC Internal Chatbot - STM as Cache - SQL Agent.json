@@ -1,0 +1,444 @@
+{
+  "name": "RBAC Internal Chatbot - STM as Cache - SQL Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "question"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        176,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        704,
+        624
+      ],
+      "id": "891e56ec-c7d9-4b5b-bffc-4e9143b66eb9",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://automation.diyprefab.com/mcp/0dac75d4-624f-4401-9ccb-dd0ce2760caa",
+        "serverTransport": "sse",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.2,
+      "position": [
+        1392,
+        544
+      ],
+      "id": "1cf9d994-b056-47dd-82e2-a7927bd08552",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "operation": "aggregate",
+        "collection": "deals",
+        "query": "=[{\"$limit\": 1}]"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        496,
+        1184
+      ],
+      "id": "02e82810-03b8-4a4d-acf1-72e38d336c93",
+      "name": "Aggregate documents1",
+      "credentials": {
+        "mongoDb": {
+          "id": "9oilxeegc2TIUctv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        832,
+        1184
+      ],
+      "id": "f87fe347-e7d6-49eb-a7a8-65619b96b100",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "316272735845845yhwrshsfhs"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        848,
+        704
+      ],
+      "id": "5dd8a9d7-157b-4670-b9fe-039ac22eb186",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.question }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an assistant that helps query a MongoDB database.\n\nYou are ONLY allowed to query ONE collection:\n- collection name: projects\n\nRules you MUST follow:\n- project_id is the primary identifier, project_name is project name\n- deal_id is ALWAYS an array\n- location fields use dot notation (example: location.city)\n- Read-only queries only\n- Always include a projection\n- Always include a limit (max 20)\n- Never use aggregation or $where\n- Never invent fields\n\nIf the question needs database data, output ONLY valid JSON in this format:\n\n{\n  \"collection\": \"projects\",\n  \"filter\": { },\n  \"projection\": { },\n  \"limit\": 10\n}\n\nIf the question does NOT need database data, respond with:\n{\n  \"answer\": \"...\"\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        928,
+        368
+      ],
+      "id": "1590daf7-e548-4e26-869f-8d73ce560b3f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"collection\": \"projects\",\n  \"filter\": { },\n  \"projection\": { },\n  \"limit\": 10\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        656
+      ],
+      "id": "03a6e9c7-bd9a-4281-b930-ae80e41a9469",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Find documents in MongoDB for \"projects\" collection",
+        "collection": "projects",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDbTool",
+      "typeVersion": 1.2,
+      "position": [
+        976,
+        688
+      ],
+      "id": "0555b380-57ce-4576-88a3-b81abc8acca7",
+      "name": "Find documents in MongoDB",
+      "credentials": {
+        "mongoDb": {
+          "id": "9oilxeegc2TIUctv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "194d7bdc-ced3-45cc-a472-43047bdaed65",
+              "name": "question",
+              "value": "={{ $json.question }}",
+              "type": "string"
+            },
+            {
+              "id": "009b5106-7550-4f8d-a3ae-38d88e76a9f6",
+              "name": "intent",
+              "value": "={{ $json.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "e6e8e622-87cd-4b50-96e6-df5c7986c949",
+              "name": "dealContext",
+              "value": "={{ $json.dealContext.parseJson() }}",
+              "type": "array"
+            },
+            {
+              "id": "efa3f2b1-8679-4f51-8d29-60448b598faf",
+              "name": "userContext",
+              "value": "={{ $json.userContext.parseJson() }}",
+              "type": "object"
+            },
+            {
+              "id": "5cc3f78c-b20e-4b6e-9026-031993857a53",
+              "name": "projectContext",
+              "value": "={{ $json.projectContext.parseJson() }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        368
+      ],
+      "id": "ab10dbf3-9bbc-4e53-ae11-7bdc891f3923",
+      "name": "Parse JSON"
+    },
+    {
+      "parameters": {
+        "collection": "={{ $json.output.collection }}",
+        "options": {
+          "limit": 10
+        },
+        "query": "={{ $json.output.filter.toJsonString() }}"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1488,
+        368
+      ],
+      "id": "dafb3e47-b11d-401b-a084-55a4d0b891f3",
+      "name": "Find documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "9oilxeegc2TIUctv",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Parse JSON').item.json.question }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a helpful assistant.\n\nAnswer the user's question using ONLY the database results provided.\nDatabase result: {{ $json.db_results.toJsonString() }}\nIf a value is missing or null, say \"Data not available\".\nDo not guess or infer.\nBe concise and clear.\n"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        2160,
+        368
+      ],
+      "id": "6ddb0611-f57f-41f4-bb0f-e1fed0937d93",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "db_results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        368
+      ],
+      "id": "e2331899-09fd-404f-9dc2-609c522d95cf",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2096,
+        576
+      ],
+      "id": "db1b5824-3f89-4108-89fa-3993cdb0714f",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "W6MBR00alcbgJqVh",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "question": "How many partners are with the name pushpendu?",
+          "intent": "admin here",
+          "projectContext": "[{\"created_at\":\"2025-12-16T11:43:12\",\"updated_at\":\"2025-12-16T11:43:12\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT472812\",\"project_name\":\"'QRF NO - 041_2526\",\"client_company_name\":\"SANKO GOSEI TECHNOLOGY PVT.LTD\",\"partner_id\":\"692720211e26bc74fe51d0c2\",\"partner_name\":\"Pushpendu Jana\",\"location\":{\"address\":\"vithalapur gujarat\",\"pincode\":\"382120\",\"state\":\"gujarat\",\"city\":\"ahmedabad\",\"latitude\":null,\"longitude\":null,\"area\":null},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9874547898\"}],\"email\":\"kumagai@gmail.com\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"6940f875574050e1a1f9e091\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"admin\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}},{\"created_at\":\"2025-12-16T11:43:08\",\"updated_at\":\"2025-12-16T11:43:08\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT153493\",\"project_name\":\"QRF 5 \",\"client_company_name\":\"ABC\",\"partner_id\":\"693904dd5389692041889616\",\"partner_name\":\"Invincible Gamer\",\"location\":{\"address\":\"rajmahal road\",\"pincode\":\"390001\",\"state\":\"gujarat\",\"city\":\"vadodara\",\"latitude\":null,\"longitude\":null,\"area\":null},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9856574885\"}],\"email\":\"pateljesal9@gmail.com\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"6940f872574050e1a1f9e07c\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Invincible\",\"last_name\":\"Gamer\",\"email\":\"pateljesal9@gmail.com\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"9856574885\"}],\"account_type\":\"customer\",\"profile_url\":null}},{\"created_at\":\"2025-12-04T18:47:07\",\"updated_at\":\"2025-12-04T18:47:07\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT451410\",\"project_name\":\"testdeal1\",\"client_company_name\":\"testcomp\",\"partner_id\":\"692720211e26bc74fe51d0c2\",\"partner_name\":\"Pushpendu Jana\",\"location\":{\"address\":\"hh\",\"pincode\":\"765348\",\"state\":\"g\",\"city\":\"f\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"3456789012\"}],\"email\":\"pushpendu.jana@engg.versalence.ai\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"693189d1d33c4cbe5b9c368a\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}},{\"created_at\":\"2025-12-02T16:07:54\",\"updated_at\":\"2025-12-02T16:07:54\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT658292\",\"project_name\":\"tyhyt\",\"client_company_name\":\"HFC\",\"partner_id\":\"692d93b1b368c11d49e83f9a\",\"partner_name\":\"pushpendu jana\",\"location\":{\"address\":\"hh\",\"pincode\":\"345356\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":null},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"email\":\"pushpendujana2@gmail.com\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"692ec17fb368c11d49e840c0\",\"6937bf2d0671779eb98e34f6\",\"6948f2b7461b884f28dfac02\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"account_type\":\"customer\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/HFCN0CJY7E/users/692d93b1b368c11d49e83f9a/profile_images/f077c46d-0626-42c7-b2be-5c64d87746f1.jpg\"}},{\"created_at\":\"2025-11-26T23:11:48\",\"updated_at\":\"2025-11-26T23:11:48\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT251558\",\"project_name\":\"Smart City\",\"client_company_name\":\"Versalence Infocomm Pvt Ltd\",\"partner_id\":\"692738361e26bc74fe51d135\",\"partner_name\":\"Lijo Mathew\",\"location\":{\"address\":\"smart avenue, 80 feet rd, michael palaya\",\"pincode\":\"560038\",\"state\":\"karnataka\",\"city\":\"bengaluru\",\"latitude\":null,\"longitude\":null,\"area\":\"Indirnagar\"},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9741391700\"}],\"email\":\"lijo@versalence.ai\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"69273bda1e26bc74fe51d15b\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Lijo\",\"last_name\":\"Mathew\",\"email\":\"lijo@versalence.ai\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"9741391700\"}],\"account_type\":\"customer\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/VERSA9GBM9/users/692738361e26bc74fe51d135/profile_images/a5b065a8-c22c-46cb-a7d6-d61697eb95d7.jpeg\"}},{\"created_at\":\"2025-11-26T21:48:28\",\"updated_at\":\"2025-11-26T21:48:28\",\"created_by\":null,\"updated_by\":null,\"project_id\":\"PROJECT891162\",\"project_name\":\"Shopping Mall\",\"client_company_name\":\"XYZ\",\"partner_id\":\"692720211e26bc74fe51d0c2\",\"partner_name\":\"Pushpendu Jana\",\"location\":{\"address\":\"masgab nagar, patharpratima\",\"pincode\":\"743371\",\"state\":\"west bengal\",\"city\":\"south 24 parganas\",\"latitude\":null,\"longitude\":null,\"area\":\"Patharpratima Market\"},\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9745687912\"}],\"email\":\"priyasen@gmail.com\",\"status\":\"draft\",\"deadline\":null,\"project_manager_id\":null,\"description\":null,\"deal_id\":[\"692728521e26bc74fe51d0e1\"],\"estimated_budget\":null,\"actual_cost\":null,\"priority\":1,\"tags\":[],\"completion_percentage\":0,\"commission\":2,\"user_access\":{\"department_access\":[{\"department_id\":\"DEPT475787\",\"access_level\":\"user\",\"can_manage_members\":false,\"can_view_financials\":false,\"can_edit_settings\":false,\"can_upload_files\":true,\"can_view_files\":true,\"hourly_rate\":null}],\"stage_access\":[]},\"partner_details\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}}]",
+          "dealContext": "[{\"deal_id\":\"6948f2b7461b884f28dfac02\",\"deal_company_name\":\"HFC\",\"deal_location\":{\"address\":\"df\",\"pincode\":\"789987\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"yu\"},\"created_user_id\":\"692d93b1b368c11d49e83f9a\",\"created_user_name\":\"pushpendu jana\",\"company_id\":\"HFCN0CJY7E\",\"customer_ids\":[\"692eba6cb368c11d49e840bc\"],\"hubspot_deal_id\":\"231432091382\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT658292\",\"deal_name\":\"ad1\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"common\",\"deal_status\":\"pending\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-22T07:26:47\",\"updated_at\":\"2025-12-22T07:26:47\",\"acknowledgement\":true,\"close_date\":\"2026-05-15T00:00:00\",\"last_updated_user_id\":\"692d93b1b368c11d49e83f9a\",\"last_updated_user_name\":\"pushpendu jana\",\"customers\":[{\"first_name\":\"avb\",\"last_name\":\"S\",\"email\":\"avb@gmail.com\",\"hubspot_contact_id\":\"340202471143\",\"hubspot_company_id\":\"226964940492\",\"company_id\":\"HFCN0CJY7E\",\"created_user_id\":\"692eba6ab368c11d49e840ba\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"HFC\",\"account_status\":\"verified\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121280\"}],\"created_at\":\"2025-12-02T10:07:40.497000\",\"updated_at\":\"2025-12-02T10:07:40.497000\",\"verified_by\":null,\"contact_id\":\"692eba6cb368c11d49e840bc\"}],\"created_user\":{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"account_type\":\"customer\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/HFCN0CJY7E/users/692d93b1b368c11d49e83f9a/profile_images/f077c46d-0626-42c7-b2be-5c64d87746f1.jpg\"}},{\"deal_id\":\"6940facc574050e1a1f9e0d0\",\"deal_company_name\":\"Record\",\"deal_location\":{\"address\":\"bandra west\",\"pincode\":\"400004\",\"state\":\"maharashtra\",\"city\":\"mumbai\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"692736481e26bc74fe51d12d\",\"created_user_name\":\"Gopi Mane\",\"company_id\":\"JKL9CLAL21\",\"customer_ids\":[\"6940faca574050e1a1f9e0cc\"],\"hubspot_deal_id\":\"242093753061\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT873176\",\"deal_name\":\"Exception\",\"deal_value\":null,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-16T06:23:08\",\"updated_at\":\"2025-12-16T06:23:10\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692736481e26bc74fe51d12d\",\"last_updated_user_name\":\"Gopi Mane\",\"customers\":[{\"first_name\":\"Aditya\",\"last_name\":\"N\",\"email\":\"manegopi2002@gmail.com\",\"hubspot_contact_id\":\"348460702398\",\"hubspot_company_id\":\"224379827957\",\"company_id\":\"JKL9CLAL21\",\"created_user_id\":\"692736481e26bc74fe51d12d\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"Record\",\"account_status\":\"verified\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"7353756435\"}],\"created_at\":\"2025-12-16T06:23:06.186000\",\"updated_at\":\"2025-12-16T06:23:06.186000\",\"verified_by\":{\"user_id\":\"692729d81e26bc74fe51d0ee\",\"name\":\"Pushpendu\",\"verified_at\":\"2025-12-23T09:02:17.819000\"},\"contact_id\":\"6940faca574050e1a1f9e0cc\"}],\"created_user\":{\"first_name\":\"Gopi\",\"last_name\":\"Mane\",\"email\":\"gopi.mane@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"7353756433\"}],\"account_type\":\"partner\",\"profile_url\":null}},{\"deal_id\":\"6940f9c9574050e1a1f9e0b9\",\"deal_company_name\":\"push\",\"deal_location\":{\"address\":\"eden garden,\",\"pincode\":\"560068\",\"state\":\"karnataka\",\"city\":\"bengaluru\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"692736481e26bc74fe51d12d\",\"created_user_name\":\"Gopi Mane\",\"company_id\":\"JKL9CLAL21\",\"customer_ids\":[\"69273a9a1e26bc74fe51d148\"],\"hubspot_deal_id\":\"237470644935\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT773063\",\"deal_name\":\"Allao\",\"deal_value\":6000000,\"currency\":\"INR\",\"deal_type\":\"common\",\"deal_status\":\"pending\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-16T06:18:49\",\"updated_at\":\"2025-12-16T06:18:49\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692736481e26bc74fe51d12d\",\"last_updated_user_name\":\"Gopi Mane\",\"customers\":[{\"first_name\":\"name\",\"last_name\":\"M\",\"email\":\"gopi.mane@engg.versalence.ai\",\"hubspot_contact_id\":\"335322968808\",\"hubspot_company_id\":\"224379827957\",\"company_id\":\"JKL9CLAL21\",\"created_user_id\":\"692736481e26bc74fe51d12d\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"sumit &co\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"7353756433\"}],\"created_at\":\"2025-11-26T17:36:26.255000\",\"updated_at\":\"2025-11-26T17:36:26.255000\",\"verified_by\":null,\"contact_id\":\"69273a9a1e26bc74fe51d148\"}],\"created_user\":{\"first_name\":\"Gopi\",\"last_name\":\"Mane\",\"email\":\"gopi.mane@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"7353756433\"}],\"account_type\":\"partner\",\"profile_url\":null}},{\"deal_id\":\"6940f875574050e1a1f9e091\",\"deal_company_name\":\"SANKO GOSEI TECHNOLOGY PVT.LTD\",\"deal_location\":{\"address\":\"vithalapur gujarat\",\"pincode\":\"382120\",\"state\":\"gujarat\",\"city\":\"ahmedabad\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"6940f873574050e1a1f9e07d\"],\"hubspot_deal_id\":\"242055711479\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT472812\",\"deal_name\":\"'QRF NO - 041_2526\",\"deal_value\":null,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-16T06:13:09\",\"updated_at\":\"2025-12-16T06:13:12\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"Kumagai\",\"last_name\":\"Ji\",\"email\":\"kumagai@gmail.com\",\"hubspot_contact_id\":\"355341289191\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"SANKO GOSEI TECHNOLOGY PVT.LTD\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9874547898\"}],\"created_at\":\"2025-12-16T06:13:07.709000\",\"updated_at\":\"2025-12-16T06:13:07.709000\",\"verified_by\":null,\"contact_id\":\"6940f873574050e1a1f9e07d\"}],\"created_user\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}},{\"deal_id\":\"6940f872574050e1a1f9e07c\",\"deal_company_name\":\"ABC\",\"deal_location\":{\"address\":\"rajmahal road\",\"pincode\":\"390001\",\"state\":\"gujarat\",\"city\":\"vadodara\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"693904dd5389692041889616\",\"created_user_name\":\"Invincible Gamer\",\"company_id\":\"ABCAWE7ZQU\",\"customer_ids\":[\"693904dd5389692041889617\"],\"hubspot_deal_id\":\"241808787161\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT153493\",\"deal_name\":\"QRF 5 \",\"deal_value\":8888888,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-16T06:13:06\",\"updated_at\":\"2025-12-16T06:13:08\",\"acknowledgement\":true,\"close_date\":\"2025-12-18T00:00:00\",\"last_updated_user_id\":\"693904dd5389692041889616\",\"last_updated_user_name\":\"Invincible Gamer\",\"customers\":[{\"first_name\":\"Invincible\",\"last_name\":\"Gamer\",\"email\":\"pateljesal9@gmail.com\",\"hubspot_contact_id\":\"348703039169\",\"hubspot_company_id\":\"233756996323\",\"company_id\":\"ABCAWE7ZQU\",\"created_user_id\":\"693904dd5389692041889616\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"ABC\",\"account_status\":\"verified\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9856574885\"}],\"created_at\":\"2025-12-10T05:27:57.514000\",\"updated_at\":\"2025-12-10T05:27:57.514000\",\"verified_by\":null,\"contact_id\":\"693904dd5389692041889617\"}],\"created_user\":{\"first_name\":\"Invincible\",\"last_name\":\"Gamer\",\"email\":\"pateljesal9@gmail.com\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"9856574885\"}],\"account_type\":\"customer\",\"profile_url\":null}},{\"deal_id\":\"693a655353896920418896f9\",\"deal_company_name\":\"ABCD\",\"deal_location\":{\"address\":\"dfh\",\"pincode\":\"777709\",\"state\":\"kkkkk\",\"city\":\"bbbb\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"693672fc0671779eb98e332d\",\"created_user_name\":\"hhhhh sssss\",\"company_id\":\"VERSABALVN\",\"customer_ids\":[\"693a57a653896920418896a9\"],\"hubspot_deal_id\":\"238001852151\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT442805\",\"deal_name\":\"testing\",\"deal_value\":null,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-11T06:31:47\",\"updated_at\":\"2025-12-11T06:31:49\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"693672fc0671779eb98e332d\",\"last_updated_user_name\":\"hhhhh sssss\",\"customers\":[{\"first_name\":\"test\",\"last_name\":\"%%%%!@@\",\"email\":\"testuser@gmail.com\",\"hubspot_contact_id\":\"349866313455\",\"hubspot_company_id\":\"232071995089\",\"company_id\":\"VERSABALVN\",\"created_user_id\":\"693672fc0671779eb98e332d\",\"position\":\"Employee\",\"tags\":null,\"notes\":null,\"customer_company_name\":\"ABCD\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234567898\"}],\"created_at\":\"2025-12-11T05:33:26.012000\",\"updated_at\":\"2025-12-11T05:33:26.012000\",\"verified_by\":null,\"contact_id\":\"693a57a653896920418896a9\"}],\"created_user\":{\"first_name\":\"hhhhh\",\"last_name\":\"sssss\",\"email\":\"sanjana.r.harshitha@ops.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"3456713797\"}],\"account_type\":\"partner\",\"profile_url\":null}},{\"deal_id\":\"693905a0538969204188961e\",\"deal_company_name\":\"pushpendu\",\"deal_location\":{\"address\":\"bomanhalii\",\"pincode\":\"560068\",\"state\":\"karnataka\",\"city\":\"bengaluru\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"69390478538969204188960e\",\"created_user_name\":\"mane gopi\",\"company_id\":\"HGGF5ZJA8U\",\"customer_ids\":[\"6939059e538969204188961a\"],\"hubspot_deal_id\":\"237470644935\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT773063\",\"deal_name\":\"boxoffice\",\"deal_value\":null,\"currency\":\"INR\",\"deal_type\":\"common\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-10T05:31:12\",\"updated_at\":\"2025-12-10T05:31:14\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"69390478538969204188960e\",\"last_updated_user_name\":\"mane gopi\",\"customers\":[{\"first_name\":\"akshay\",\"last_name\":\"lokah\",\"email\":\"pateljesal9@gmail.com\",\"hubspot_contact_id\":\"348703039169\",\"hubspot_company_id\":\"233880354517\",\"company_id\":\"HGGF5ZJA8U\",\"created_user_id\":\"69390478538969204188960e\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"pushpendu\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"9986002588\"}],\"created_at\":\"2025-12-10T05:31:10.792000\",\"updated_at\":\"2025-12-10T05:31:10.792000\",\"verified_by\":null,\"contact_id\":\"6939059e538969204188961a\"}],\"created_user\":{\"first_name\":\"mane\",\"last_name\":\"gopi\",\"email\":\"manegopi2002@gmail.com\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8317351223\"}],\"account_type\":\"partner\",\"profile_url\":null}},{\"deal_id\":\"6937c5100671779eb98e3510\",\"deal_company_name\":\"HFC\",\"deal_location\":{\"address\":\"sd\",\"pincode\":\"765348\",\"state\":\"maharastra\",\"city\":\"dd\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"692d93b1b368c11d49e83f9a\",\"created_user_name\":\"pushpendu jana\",\"company_id\":\"HFCN0CJY7E\",\"customer_ids\":[\"692eba6cb368c11d49e840bc\"],\"hubspot_deal_id\":\"236448820979\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT547728\",\"deal_name\":\"ght\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-09T06:43:28\",\"updated_at\":\"2025-12-09T06:43:31\",\"acknowledgement\":true,\"close_date\":\"2026-05-04T00:00:00\",\"last_updated_user_id\":\"692d93b1b368c11d49e83f9a\",\"last_updated_user_name\":\"pushpendu jana\",\"customers\":[{\"first_name\":\"avb\",\"last_name\":\"S\",\"email\":\"avb@gmail.com\",\"hubspot_contact_id\":\"340202471143\",\"hubspot_company_id\":\"226964940492\",\"company_id\":\"HFCN0CJY7E\",\"created_user_id\":\"692eba6ab368c11d49e840ba\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"HFC\",\"account_status\":\"verified\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121280\"}],\"created_at\":\"2025-12-02T10:07:40.497000\",\"updated_at\":\"2025-12-02T10:07:40.497000\",\"verified_by\":null,\"contact_id\":\"692eba6cb368c11d49e840bc\"}],\"created_user\":{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"account_type\":\"customer\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/HFCN0CJY7E/users/692d93b1b368c11d49e83f9a/profile_images/f077c46d-0626-42c7-b2be-5c64d87746f1.jpg\"}},{\"deal_id\":\"6937bf2d0671779eb98e34f6\",\"deal_company_name\":\"HFC\",\"deal_location\":{\"address\":\"hh street\",\"pincode\":\"345356\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"abc\"},\"created_user_id\":\"692d93b1b368c11d49e83f9a\",\"created_user_name\":\"pushpendu jana\",\"company_id\":\"HFCN0CJY7E\",\"customer_ids\":[\"692d93b1b368c11d49e83f9b\"],\"hubspot_deal_id\":\"231432091382\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT658292\",\"deal_name\":\"cff\",\"deal_value\":null,\"currency\":\"INR\",\"deal_type\":\"common\",\"deal_status\":\"pending\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-09T06:18:21\",\"updated_at\":\"2025-12-09T06:18:21\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692d93b1b368c11d49e83f9a\",\"last_updated_user_name\":\"pushpendu jana\",\"customers\":[{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"hubspot_contact_id\":\"337445967552\",\"hubspot_company_id\":\"226964940492\",\"company_id\":\"HFCN0CJY7E\",\"created_user_id\":\"692d93b1b368c11d49e83f9a\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"HFC\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"created_at\":\"2025-12-01T13:10:09.506000\",\"updated_at\":\"2025-12-01T13:10:09.506000\",\"verified_by\":null,\"contact_id\":\"692d93b1b368c11d49e83f9b\"}],\"created_user\":{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"account_type\":\"customer\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/HFCN0CJY7E/users/692d93b1b368c11d49e83f9a/profile_images/f077c46d-0626-42c7-b2be-5c64d87746f1.jpg\"}},{\"deal_id\":\"693691e60671779eb98e33bc\",\"deal_company_name\":\"buildcomp\",\"deal_location\":{\"address\":\"abc street\",\"pincode\":\"765348\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"abc\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"693691e40671779eb98e33b8\"],\"hubspot_deal_id\":\"235736101620\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT259369\",\"deal_name\":\"building\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-08T08:52:54\",\"updated_at\":\"2025-12-08T08:52:56\",\"acknowledgement\":true,\"close_date\":\"2026-04-10T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"kavya\",\"last_name\":\"N\",\"email\":\"kavyasree@ops.versalence.ai\",\"hubspot_contact_id\":\"346033282753\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"buildcomp\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121266\"}],\"created_at\":\"2025-12-08T08:52:52.692000\",\"updated_at\":\"2025-12-08T08:52:52.692000\",\"verified_by\":null,\"contact_id\":\"693691e40671779eb98e33b8\"}],\"created_user\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}},{\"deal_id\":\"693189d1d33c4cbe5b9c368a\",\"deal_company_name\":\"testcomp\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"765348\",\"state\":\"g\",\"city\":\"f\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"693189cfd33c4cbe5b9c3686\"],\"hubspot_deal_id\":\"232719607501\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT451410\",\"deal_name\":\"testdeal1\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-04T13:17:05\",\"updated_at\":\"2025-12-04T13:17:07\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"ags\",\"last_name\":\"a\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"hubspot_contact_id\":\"311628965610\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"testcomp\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"3456789012\"}],\"created_at\":\"2025-12-04T13:17:03.128000\",\"updated_at\":\"2025-12-04T13:17:03.128000\",\"verified_by\":null,\"contact_id\":\"693189cfd33c4cbe5b9c3686\"}],\"created_user\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}},{\"deal_id\":\"69318844d33c4cbe5b9c3677\",\"deal_company_name\":\"HFC\",\"deal_location\":{\"address\":\"tyfeytr\",\"pincode\":\"560000\",\"state\":\"karnataka\",\"city\":\"bangalore\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"692d93b1b368c11d49e83f9a\",\"created_user_name\":\"pushpendu jana\",\"company_id\":\"HFCN0CJY7E\",\"customer_ids\":[\"692d93b1b368c11d49e83f9b\"],\"hubspot_deal_id\":\"232617424626\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT961418\",\"deal_name\":\"testing\",\"deal_value\":450000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-04T13:10:28\",\"updated_at\":\"2025-12-04T13:10:30\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692d93b1b368c11d49e83f9a\",\"last_updated_user_name\":\"pushpendu jana\",\"customers\":[{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"hubspot_contact_id\":\"337445967552\",\"hubspot_company_id\":\"226964940492\",\"company_id\":\"HFCN0CJY7E\",\"created_user_id\":\"692d93b1b368c11d49e83f9a\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"HFC\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"created_at\":\"2025-12-01T13:10:09.506000\",\"updated_at\":\"2025-12-01T13:10:09.506000\",\"verified_by\":null,\"contact_id\":\"692d93b1b368c11d49e83f9b\"}],\"created_user\":{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"account_type\":\"customer\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/HFCN0CJY7E/users/692d93b1b368c11d49e83f9a/profile_images/f077c46d-0626-42c7-b2be-5c64d87746f1.jpg\"}},{\"deal_id\":\"6931425eb368c11d49e841f8\",\"deal_company_name\":\"gia.com\",\"deal_location\":{\"address\":\"hh street\",\"pincode\":\"345359\",\"state\":\"karnataka\",\"city\":\"fg\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692e734fb368c11d49e83fd6\",\"created_user_name\":\"partner employee\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"69314259b368c11d49e841f4\"],\"hubspot_deal_id\":\"232975613689\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT490776\",\"deal_name\":\"construction\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":\"Villa construction\",\"tags\":[],\"created_at\":\"2025-12-04T08:12:14\",\"updated_at\":\"2025-12-04T08:12:17\",\"acknowledgement\":true,\"close_date\":null,\"last_updated_user_id\":\"692e734fb368c11d49e83fd6\",\"last_updated_user_name\":\"partner employee\",\"customers\":[{\"first_name\":\"gg\",\"last_name\":\"D\",\"email\":\"gia@gmail.com\",\"hubspot_contact_id\":\"342281735891\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692e734fb368c11d49e83fd6\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"giass\",\"account_status\":\"verified\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121800\"},{\"phone_number_extension\":\"91\",\"phone_number\":\"7878654321\"}],\"created_at\":\"2025-12-04T08:12:09.720000\",\"updated_at\":\"2025-12-04T08:12:09.720000\",\"verified_by\":{\"user_id\":\"692729d81e26bc74fe51d0ee\",\"name\":\"Pushpendu\",\"verified_at\":\"2025-12-05T09:50:27.882000\"},\"contact_id\":\"69314259b368c11d49e841f4\"}],\"created_user\":{\"first_name\":\"partner\",\"last_name\":\"employee\",\"email\":\"partneremployee@gmail.com\",\"role\":\"employee\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"7896658858\"}],\"account_type\":\"partner\",\"profile_url\":null}},{\"deal_id\":\"692ec17fb368c11d49e840c0\",\"deal_company_name\":\"HFC\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"345356\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":null},\"created_user_id\":\"692d93b1b368c11d49e83f9a\",\"created_user_name\":\"pushpendu jana\",\"company_id\":\"HFCN0CJY7E\",\"customer_ids\":[\"692d93b1b368c11d49e83f9b\"],\"hubspot_deal_id\":\"231432091382\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT658292\",\"deal_name\":\"tyhyt\",\"deal_value\":5000000,\"currency\":\"INR\",\"deal_type\":\"common\",\"deal_status\":\"approved\",\"notes\":null,\"tags\":[],\"created_at\":\"2025-12-02T10:37:51\",\"updated_at\":\"2025-12-02T10:37:54\",\"acknowledgement\":true,\"close_date\":\"2026-03-07T00:00:00\",\"last_updated_user_id\":\"692d93b1b368c11d49e83f9a\",\"last_updated_user_name\":\"pushpendu jana\",\"customers\":[{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"hubspot_contact_id\":\"337445967552\",\"hubspot_company_id\":\"226964940492\",\"company_id\":\"HFCN0CJY7E\",\"created_user_id\":\"692d93b1b368c11d49e83f9a\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"HFC\",\"account_status\":\"pending\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"created_at\":\"2025-12-01T13:10:09.506000\",\"updated_at\":\"2025-12-01T13:10:09.506000\",\"verified_by\":null,\"contact_id\":\"692d93b1b368c11d49e83f9b\"}],\"created_user\":{\"first_name\":\"pushpendu\",\"last_name\":\"jana\",\"email\":\"pushpendujana2@gmail.com\",\"role\":\"customer\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870555\"}],\"account_type\":\"customer\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/HFCN0CJY7E/users/692d93b1b368c11d49e83f9a/profile_images/f077c46d-0626-42c7-b2be-5c64d87746f1.jpg\"}},{\"deal_id\":\"692e9a37b368c11d49e84063\",\"deal_company_name\":\"xsd\",\"deal_location\":{\"address\":\"hh\",\"pincode\":\"345359\",\"state\":\"karnataka\",\"city\":\"bengalure\",\"latitude\":null,\"longitude\":null,\"area\":\"asd\"},\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"created_user_name\":\"Pushpendu Jana\",\"company_id\":\"WNFACHC1I4\",\"customer_ids\":[\"692e9a35b368c11d49e8405f\"],\"hubspot_deal_id\":\"231385284334\",\"pipeline_id\":\"default\",\"deal_stage_id\":\"1644151538\",\"deal_stage_label\":\"QRF Received\",\"status\":\"active\",\"probability\":0.05,\"is_closed\":false,\"project_id\":\"PROJECT884838\",\"deal_name\":\"housing\",\"deal_value\":6000000,\"currency\":\"INR\",\"deal_type\":\"unique\",\"deal_status\":\"approved\",\"notes\":\"housing project near the city and near to available road and transport facility\",\"tags\":[],\"created_at\":\"2025-12-02T07:50:15\",\"updated_at\":\"2025-12-02T07:50:17\",\"acknowledgement\":true,\"close_date\":\"2026-05-22T00:00:00\",\"last_updated_user_id\":\"692720211e26bc74fe51d0c2\",\"last_updated_user_name\":\"Pushpendu Jana\",\"customers\":[{\"first_name\":\"ka\",\"last_name\":\"g\",\"email\":\"rtgy@gmail.com\",\"hubspot_contact_id\":\"339985772257\",\"hubspot_company_id\":\"224570442478\",\"company_id\":\"WNFACHC1I4\",\"created_user_id\":\"692720211e26bc74fe51d0c2\",\"position\":null,\"tags\":null,\"notes\":null,\"customer_company_name\":\"xtt\",\"account_status\":\"verified\",\"phone_number\":[{\"phone_number_extension\":\"91\",\"phone_number\":\"1234121234\"},{\"phone_number_extension\":\"91\",\"phone_number\":\"6743212321\"}],\"created_at\":\"2025-12-02T07:50:13.303000\",\"updated_at\":\"2025-12-02T07:50:13.303000\",\"verified_by\":{\"user_id\":\"692720b6cf400c5a58a63e19\",\"name\":\"Tester\",\"verified_at\":\"2025-12-03T08:39:10.568000\"},\"contact_id\":\"692e9a35b368c11d49e8405f\"}],\"created_user\":{\"first_name\":\"Pushpendu\",\"last_name\":\"Jana\",\"email\":\"pushpendu.jana@engg.versalence.ai\",\"role\":\"admin\",\"phone_numbers\":[{\"is_verified\":false,\"phone_number_extension\":\"91\",\"phone_number\":\"8336870054\"}],\"account_type\":\"partner\",\"profile_url\":\"https://s3.diyprefab.com/project-files/companies/WNFACHC1I4/users/692720211e26bc74fe51d0c2/profile_images/f31216c8-1d18-4855-9b2c-af41307b860d.jpg\"}}]",
+          "userContext": "{\"userId\":\"69272e291e26bc74fe51d103\",\"name\":\"sumit mondal\",\"email\":\"smondalonly@gmail.com\",\"userRole\":\"admin\",\"account_type\":\"platform_provider\",\"token\":\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTI3MmUyOTFlMjZiYzc0ZmU1MWQxMDMiLCJlbWFpbCI6InNtb25kYWxvbmx5QGdtYWlsLmNvbSIsInJvbGUiOiJhZG1pbiIsInVzZXJfdHlwZSI6InBsYXRmb3JtX3Byb3ZpZGVyIiwic2Vzc2lvbl9pZCI6IjAwNWExNTZkLTRiZjQtNDg3OC05MDI0LTlmZGYyZDFjYTUyMCIsImV4cCI6MTc2Nzg3MzkzNn0.V5j6Dthk8HbLc6Vni3gOCX9ZamEZSS5cC28LmtQnZP4\"}"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Parse JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Aggregate documents1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        []
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        []
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find documents in MongoDB": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Parse JSON": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Find documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find documents": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c5187e2b-efa7-4b24-9e1f-e8ecb4643e88",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d4b4d0eabe8fbefe07fcc9e93ff80219687990c826ebade8f76e4e6de90b238e"
+  },
+  "id": "mD5AsEG2rsLI51G7",
+  "tags": []
+}
