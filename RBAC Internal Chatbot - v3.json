@@ -4,7 +4,7 @@
     {
       "parameters": {
         "public": true,
-        "initialMessages": "Hi there ! 👋  \nWelcome to DIY-Prefab, I am your AI Assistant, how can i help you today",
+        "initialMessages": "Hi there ! 👋  \nWelcome to Redacted, I am your AI Assistant, how can i help you today",
         "options": {
           "loadPreviousSession": "memory",
           "responseMode": "lastNode"
